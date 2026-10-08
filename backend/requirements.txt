@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic[email]
+pillow
+pytest
+httpx
+pytest-asyncio
+python-multipart
