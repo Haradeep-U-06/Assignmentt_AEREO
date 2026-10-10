@@ -33,6 +33,7 @@ function App() {
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<string>('All');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +72,6 @@ function App() {
     setIsLoading(true);
     setError('');
 
-    // Filter out completely empty rows
     const validRecipients = recipients.filter(
       r => r.recipient_name.trim() !== '' && r.email.trim() !== '' && r.course_name.trim() !== ''
     );
@@ -85,6 +85,7 @@ function App() {
     try {
       const res = await axios.post(`${API_BASE_URL}/jobs/`, { recipients: validRecipients });
       setCurrentJob(res.data);
+      setSelectedCourse('All');
       setRecipients([{ recipient_name: '', email: '', course_name: '' }]);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to submit request.");
@@ -108,6 +109,7 @@ function App() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setCurrentJob(res.data);
+      setSelectedCourse('All');
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to upload and process file.");
     } finally {
@@ -125,6 +127,15 @@ function App() {
   const startNewJob = () => {
     setCurrentJob(null);
   };
+
+  const groupedCertificates = currentJob?.certificates.reduce((acc, cert) => {
+    const course = cert.course_name || 'Unknown Course';
+    if (!acc[course]) acc[course] = [];
+    acc[course].push(cert);
+    return acc;
+  }, {} as Record<string, Certificate[]>) || {};
+
+  const courses = Object.keys(groupedCertificates);
 
   return (
     <div className="container animate-fade-in">
@@ -282,52 +293,99 @@ function App() {
             )}
           </div>
 
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Recipient Details</th>
-                  <th>Course</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentJob.certificates.map(cert => (
-                  <tr key={cert.id}>
-                    <td>
-                      <div style={{ fontWeight: 500, color: '#fff', marginBottom: '2px' }}>{cert.recipient_name}</div>
-                      <div className="text-muted text-sm">{cert.email}</div>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{cert.course_name}</td>
-                    <td>
-                      <span className={`badge ${cert.status}`}>
-                        {cert.status === 'processing' && <Loader2 size={12} className="animate-spin" />}
-                        {cert.status}
-                      </span>
-                      {cert.error_message && (
-                        <div className="text-error" style={{ fontSize: '0.75rem', marginTop: '6px', maxWidth: '200px' }}>
-                          {cert.error_message}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {cert.status === 'generated' ? (
-                        <button
-                          onClick={() => downloadCertificate(cert.id, cert.recipient_name)}
-                          className="btn btn-secondary"
-                          style={{ padding: '8px 16px', fontSize: '0.875rem' }}
-                        >
-                          <Download size={14} /> Download
-                        </button>
-                      ) : (
-                        <span className="text-muted text-sm px-4">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {courses.length > 1 && (
+            <div className="flex gap-3 mb-8 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+              <button 
+                onClick={() => setSelectedCourse('All')}
+                className={`btn ${selectedCourse === 'All' ? '' : 'btn-secondary'}`}
+                style={{ padding: '8px 20px', borderRadius: '9999px', fontSize: '0.875rem' }}
+              >
+                All Courses
+              </button>
+              {courses.map(course => (
+                <button 
+                  key={course}
+                  onClick={() => setSelectedCourse(course)}
+                  className={`btn ${selectedCourse === course ? '' : 'btn-secondary'}`}
+                  style={{ padding: '8px 20px', borderRadius: '9999px', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                >
+                  {course}
+                  <span style={{ 
+                    background: selectedCourse === course ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.1)', 
+                    padding: '2px 8px', 
+                    borderRadius: '9999px', 
+                    marginLeft: '8px',
+                    fontSize: '0.75rem'
+                  }}>
+                    {groupedCertificates[course].length}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {Object.entries(groupedCertificates)
+              .filter(([course]) => selectedCourse === 'All' || selectedCourse === course)
+              .map(([course, certs]) => (
+              <div key={course} className="glass-card animate-fade-in" style={{ padding: '24px', background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl flex items-center gap-2" style={{ fontWeight: 600, color: '#f8fafc' }}>
+                    <Award size={20} className="text-primary" />
+                    {course}
+                  </h3>
+                  <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#a1a1aa' }}>
+                    {certs.length} {certs.length === 1 ? 'Recipient' : 'Recipients'}
+                  </span>
+                </div>
+                
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Recipient Details</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {certs.map(cert => (
+                        <tr key={cert.id}>
+                          <td>
+                            <div style={{ fontWeight: 500, color: '#fff', marginBottom: '2px' }}>{cert.recipient_name}</div>
+                            <div className="text-muted text-sm">{cert.email}</div>
+                          </td>
+                          <td>
+                            <span className={`badge ${cert.status}`}>
+                              {cert.status === 'processing' && <Loader2 size={12} className="animate-spin" />}
+                              {cert.status}
+                            </span>
+                            {cert.error_message && (
+                              <div className="text-error" style={{ fontSize: '0.75rem', marginTop: '6px', maxWidth: '200px' }}>
+                                {cert.error_message}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {cert.status === 'generated' ? (
+                              <button
+                                onClick={() => downloadCertificate(cert.id, cert.recipient_name)}
+                                className="btn btn-secondary"
+                                style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+                              >
+                                <Download size={14} /> Download
+                              </button>
+                            ) : (
+                              <span className="text-muted text-sm px-4">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
