@@ -1,0 +1,20 @@
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+env/
+venv/
+*.db
+*.sqlite3
+generated_certificates/
+fonts/
+.env
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+frontend/.DS_Store
+.DS_Store
