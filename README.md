@@ -1,4 +1,4 @@
-# Bulk Certificate Generator
+# Assignmentt_AEREO
 
 This project is a full-stack application for generating certificates in bulk. It provides a FastAPI backend for processing requests and generating certificates using a predefined template, and a React + Vite frontend with a modern, glassmorphism UI.
 
