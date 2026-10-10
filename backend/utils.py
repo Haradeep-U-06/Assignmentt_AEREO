@@ -2,6 +2,9 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 import uuid
 import urllib.request
+from dotenv import load_dotenv
+
+load_dotenv()
 
 CERTIFICATE_DIR = "generated_certificates"
 FONTS_DIR = "fonts"
@@ -117,16 +120,64 @@ def generate_certificate(recipient_name: str, course_name: str) -> str:
     draw.text(((WIDTH - w) / 2, 660), course_name.upper(), fill="#1E293B", font=font_course)
     
     # Add dummy signature
-    font_sig = get_font("signature", 60)
-    draw.text((380, HEIGHT - 260), "Sign", fill="#1E293B", font=font_sig)
+    font_sig = get_font("signature", 42)
+    sig_text = "Aereo Admin"
+    bbox = draw.textbbox((0, 0), sig_text, font=font_sig)
+    w = bbox[2] - bbox[0]
+    draw.text((300 + (300 - w) / 2, HEIGHT - 245), sig_text, fill="#1E293B", font=font_sig)
     
     # Add date
     from datetime import datetime
     date_str = datetime.now().strftime("%B %d, %Y")
-    font_date = get_font("signature", 48)
-    draw.text((WIDTH - 520, HEIGHT - 250), date_str, fill="#1E293B", font=font_date)
+    font_date = get_font("signature", 42)
+    bbox = draw.textbbox((0, 0), date_str, font=font_date)
+    w = bbox[2] - bbox[0]
+    draw.text((WIDTH - 600 + (300 - w) / 2, HEIGHT - 245), date_str, fill="#1E293B", font=font_date)
     
     filename = f"{uuid.uuid4()}.jpg"
     filepath = os.path.join(CERTIFICATE_DIR, filename)
     img.save(filepath, quality=95)
+    
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "certificates")
+    
+    if SUPABASE_URL and SUPABASE_KEY:
+        from supabase import create_client
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        with open(filepath, 'rb') as f:
+            supabase.storage.from_(SUPABASE_BUCKET).upload(filename, f)
+        public_url = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(filename)
+        # Clean up local file to save space
+        try:
+            os.remove(filepath)
+        except OSError:
+            pass
+        return public_url
+        
     return filepath
+
+def migrate_to_supabase():
+    """Utility function to upload all existing local certificates to Supabase"""
+    SUPABASE_URL = os.environ.get("SUPABASE_URL")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+    SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "certificates")
+    
+    if not (SUPABASE_URL and SUPABASE_KEY):
+        print("Please set SUPABASE_URL and SUPABASE_KEY environment variables to migrate.")
+        return
+        
+    from supabase import create_client
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    for filename in os.listdir(CERTIFICATE_DIR):
+        if filename.endswith(".jpg"):
+            filepath = os.path.join(CERTIFICATE_DIR, filename)
+            try:
+                print(f"Uploading {filename}...")
+                with open(filepath, 'rb') as f:
+                    supabase.storage.from_(SUPABASE_BUCKET).upload(filename, f)
+                # print(f"Uploaded {filename}, removing local copy...")
+                # os.remove(filepath)
+            except Exception as e:
+                print(f"Failed to upload {filename}: {e}")

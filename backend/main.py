@@ -1,10 +1,13 @@
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import pandas as pd
 import io
 from sqlalchemy.orm import Session
 import models, schemas, database, utils
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -167,6 +170,11 @@ def download_certificate(certificate_id: int, db: Session = Depends(database.get
         raise HTTPException(status_code=404, detail="Certificate not found")
     if cert.status != "generated" or not cert.file_path:
         raise HTTPException(status_code=400, detail="Certificate is not available for download")
+        
+    if cert.file_path.startswith("http"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=cert.file_path)
+        
     if not os.path.exists(cert.file_path):
         raise HTTPException(status_code=404, detail="File not found on server")
         
