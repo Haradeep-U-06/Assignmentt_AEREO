@@ -79,13 +79,20 @@ def create_certificate_template():
     
     # Signatures lines
     sig_font = get_font("body", 18)
+    
     # Left Signature
     draw.line([300, HEIGHT - 200, 600, HEIGHT - 200], fill="#1E293B", width=2)
-    draw.text((400, HEIGHT - 190), "AUTHORIZED SIGNATURE", fill="#64748B", font=sig_font)
+    auth_text = "AUTHORIZED SIGNATURE"
+    bbox = draw.textbbox((0, 0), auth_text, font=sig_font)
+    w = bbox[2] - bbox[0]
+    draw.text((300 + (300 - w) / 2, HEIGHT - 190), auth_text, fill="#64748B", font=sig_font)
     
     # Right Signature
     draw.line([WIDTH - 600, HEIGHT - 200, WIDTH - 300, HEIGHT - 200], fill="#1E293B", width=2)
-    draw.text((WIDTH - 500, HEIGHT - 190), "DATE ISSUED", fill="#64748B", font=sig_font)
+    date_text = "DATE ISSUED"
+    bbox = draw.textbbox((0, 0), date_text, font=sig_font)
+    w = bbox[2] - bbox[0]
+    draw.text((WIDTH - 600 + (300 - w) / 2, HEIGHT - 190), date_text, fill="#64748B", font=sig_font)
 
     img.save(template_path, quality=95)
     return template_path

@@ -139,12 +139,9 @@ function App() {
 
   return (
     <div className="container animate-fade-in">
-      <div className="text-center mb-12">
-        <div className="flex justify-center mb-4 text-primary">
-          <Award size={48} strokeWidth={1.5} />
-        </div>
-        <h1 className="text-5xl mb-4"><span className="gradient-text">Bulk Certificate</span> Generator</h1>
-        <p className="text-muted text-xl">Issue beautiful, authentic certificates to your recipients in seconds.</p>
+      <div className="mb-12">
+        <h1 className="text-3xl mb-2">Bulk Certificate Generator</h1>
+        <p className="text-muted text-sm">Issue and manage certificates instantly via Supabase.</p>
       </div>
 
       {error && (
@@ -157,8 +154,7 @@ function App() {
       {!currentJob ? (
         <div className="glass-card">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl flex items-center gap-2">
-              <FileText size={24} className="text-primary" />
+            <h2 className="text-xl font-medium text-white">
               New Request
             </h2>
             
@@ -258,12 +254,10 @@ function App() {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" /> Generating...
+                    <Loader2 size={16} className="animate-spin" /> Generating...
                   </>
                 ) : (
-                  <>
-                    <CheckCircle2 size={18} /> Generate Certificates
-                  </>
+                  "Generate Certificates"
                 )}
               </button>
             </div>
@@ -330,8 +324,7 @@ function App() {
               .map(([course, certs]) => (
               <div key={course} className="glass-card animate-fade-in" style={{ padding: '24px', background: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl flex items-center gap-2" style={{ fontWeight: 600, color: '#f8fafc' }}>
-                    <Award size={20} className="text-primary" />
+                  <h3 className="text-lg font-medium text-white">
                     {course}
                   </h3>
                   <span className="badge" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#a1a1aa' }}>
